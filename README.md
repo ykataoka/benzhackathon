@@ -9,3 +9,7 @@ node.js : v5.7.0
 # Execution
 $ ./create_data.sh  
 $ ./start_demo.sh
+
+# Visulization
+http://localhost:3001  
+http://localhost:8880
