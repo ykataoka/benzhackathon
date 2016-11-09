@@ -1,5 +1,11 @@
 # benzhackathon
-code
+This is the code of team 4
 
-influxdb : 0.13.0
+# Environment
+influxdb : 0.13.0  
 node.js : v5.7.0
++ need to prepare for gps data
+
+# Execution
+$ ./create_data.sh  
+$ ./start_demo.sh
