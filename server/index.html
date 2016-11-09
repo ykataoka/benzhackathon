@@ -1,30 +1,417 @@
+<!DOCTYPE html>
 <html>
   <head>
-    <meta charset=utf-8 />
-    <title>Travel Map</title>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
-    <!--
-    <script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.js'></script>
-    -->   
-    <script src='https://api.tiles.mapbox.com/mapbox.js/v2.4.0/mapbox.js'></script>
-
-    <!-- <script src='lib/jquery/jquery-1.10.2.js'></script>
-    -->
-    <script
-	    src="https://code.jquery.com/jquery-1.10.2.js"
-	    integrity="sha256-it5nQKHTz+34HijZJQkpNBIHsjpV8b6QzMJs9tmOBSo="
-	    crossorigin="anonymous"></script>
-    <script src='travel_map.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.css' rel='stylesheet' />
-    <link href='lib/bootstrap/bootstrap.css' rel='stylesheet' />
-    <link href='travel_map.css' rel='stylesheet' />
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.26.0/mapbox-gl.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.26.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    </style>
   </head>
-  <body>
-    <div id='map'></div>
-    <div id="travel-div">
-    <h1>That's where I have been...</h1>
-    <p class="visible-lg visible-md"><i class="fa fa-arrow-left"></i> Click on places on the map to get some details.</p>
-    <p class="visible-sm visible-xs"><i class="fa fa-arrow-up"></i> Click on places on the map to get some details.</p>
+<body>
+  
+<style>
+.marker {
+    display: block;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    padding: 0;
+}
+.trim-image-to-circle {
+    background-image: url("summerriver.jpg"); 
+    width:  80px;
+    height: 80px;
+    border-radius: 50%;
+    background-position: left top;
+    display: inline-block;        
+}
+.sample{
+  border-radius:50%;
+  width:  80px;
+  height: 80px;
+iframe{
+  vertical-align:bottom;
+}
+</style>
+
+<div id='map'></div>
+
+
+<!-- Web Socket Receiving -->
+<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+<script>
+var socket = io('http://localhost:8880');
+
+// WS : session initiation
+socket.on('news', function (data){
+  socket.emit('my other event', {hoge : 'hogehoge'});
+});
+
+// WS : geo data
+socket.on('geo_data_d', function (data){
+  current_geojson_d = JSON.stringify(data);
+  current_geojson_d = JSON.parse(current_geojson_d);
+});
+socket.on('geo_data_a', function (data){
+  current_geojson_a = JSON.stringify(data);
+  current_geojson_a = JSON.parse(current_geojson_a);
+});
+socket.on('geo_data_e', function (data){
+  current_geojson_e = JSON.stringify(data);
+  current_geojson_e = JSON.parse(current_geojson_e);
+});
+socket.on('geo_data_k', function (data){
+  current_geojson_k = JSON.stringify(data);
+  current_geojson_k = JSON.parse(current_geojson_k);
+});
+
+// Rendering multiple Drivers by Mapbox
+mapboxgl.accessToken = 'pk.eyJ1IjoieWthdGFva2EiLCJhIjoiY2lyNzJqdGVwMDB2Y2c3bTNudzh6eW8xNiJ9.uApWXlksYc3pMyjMW46jkg'; 
+var radius = 50
+var geojson = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "message": "Foo",
+                "iconSize": [radius, radius]
+            },
+            "geometry": {
+                "type": "Point",
+              "coordinates":  [-122.312177, 37.496315]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "message": "Bar",
+                "iconSize": [radius, radius]
+            },
+            "geometry": {
+              "type": "Point",
+              "coordinates":  [-122.312177, 37.496315]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "message": "Baz",
+                "iconSize": [radius, radius]
+            },
+            "geometry": {
+                "type": "Point",
+              "coordinates":  [-122.312177, 37.496315]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "message": "Baz",
+                "iconSize": [radius, radius]
+            },
+            "geometry": {
+                "type": "Point",
+              "coordinates":  [-122.312177, 37.496315]
+            }
+        }
+    ]
+};
+
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/streets-v9',
+  center: [-122.312177, 37.496315],
+  zoom: 9
+});
+
+// every one second, update the gps data
+setInterval(function(){
+  var elem = document.getElementById("d");
+  if(elem!==null){
+    elem.parentNode.removeChild(elem);
+  }
+  var elem = document.getElementById("a");
+  if(elem!==null){
+    elem.parentNode.removeChild(elem);
+  }
+  var elem = document.getElementById("e");
+  if(elem!==null){
+    elem.parentNode.removeChild(elem);
+  }
+  var elem = document.getElementById("k");
+  if(elem!==null){
+    elem.parentNode.removeChild(elem);
+  }
+  
+  var i = 0
+  geojson.features.forEach(function(marker) {
+    // create a DOM element for the marker
+    var el = document.createElement('button');
+    if(i==0){
+      el.id = 'd';
+      $(function() {
+	$('#d').attr('data-toggle', 'modal_a');
+	$('#d').attr('data-target', '#myModal_d');
+	$('#d').attr('img', 'fig/Amy.jpg');
+      });
+    }else if(i==1){
+      el.id = 'a';
+      $(function() {
+	$('#a').attr('data-toggle', 'modal_a');
+	$('#a').attr('data-target', '#myModal_a');
+      });
+    }else if(i==2){
+      el.id = 'e';
+      $(function() {
+	$('#e').attr('data-toggle', 'modal_e');
+	$('#e').attr('data-target', '#myModal_e');
+      });
+    }else if(i==3){
+      el.id = 'k';
+      $(function() {
+	$('#k').attr('data-toggle', 'modal_k');
+	$('#k').attr('data-target', '#myModal_k');
+      });
+    }
+
+    // add class
+    el.className = 'marker btn btn-info btn-lg';
+    
+    // add style
+    if(i==0){
+      el.style.backgroundImage = 'url(http://localhost:8880/fig/Amy4.jpg)';
+      el.style.backgroundSize="100% 100%";
+    }else if(i==1){
+      el.style.backgroundImage = 'url(http://localhost:8880/fig/Yasu4.jpg)';
+      el.style.backgroundSize="100% 100%";
+    }else if(i==2){
+      el.style.backgroundImage = 'url(http://localhost:8880/fig/David4.jpg)';
+      el.style.backgroundSize="100% 100%";
+    }else if(i==3){
+      el.style.backgroundImage = 'url(http://localhost:8880/fig/Simon4.jpg)';
+      el.style.backgroundSize="100% 100%";
+    }
+    el.style.width = marker.properties.iconSize[0] + 'px';
+    el.style.height = marker.properties.iconSize[1] + 'px';
+    
+    // add marker to map
+    new mapboxgl.Marker(el, {offset: [-marker.properties.iconSize[0] / 2, -marker.properties.iconSize[1] / 2]})
+      .setLngLat(marker.geometry.coordinates)
+      .addTo(map);
+
+    // render next driver
+    i++;
+  });
+  
+  // update the geo location
+  console.log(geojson['features'][0]['geometry']['coordinates']);
+  console.log(geojson['features'][1]['geometry']['coordinates']);
+  console.log(geojson['features'][2]['geometry']['coordinates']);
+  console.log(geojson['features'][3]['geometry']['coordinates']);
+  geojson['features'][0]['geometry']['coordinates'] = current_geojson_d['geometry']['coordinates']
+  geojson['features'][1]['geometry']['coordinates'] = current_geojson_a['geometry']['coordinates']
+  geojson['features'][2]['geometry']['coordinates'] = current_geojson_e['geometry']['coordinates']
+  geojson['features'][3]['geometry']['coordinates'] = current_geojson_k['geometry']['coordinates']
+
+  // update button d
+  $( "#d" ).click(function() {
+    $('#myModal_d').modal({
+        show: true
+    });
+  });
+  $('#myModal_d').on('shown.bs.modal', function () {
+    $("#txtname").focus();
+  });
+  $('#myModal_d').modal({
+    show: false
+  });
+
+  // update button a
+  $( "#a" ).click(function() {
+    $('#myModal_a').modal({
+        show: true
+    });
+  });
+  $('#myModal_a').on('shown.bs.modal', function () {
+    $("#txtname").focus();
+  });
+  $('#myModal_a').modal({
+    show: false
+  });
+  
+  // update button e
+  $( "#e" ).click(function() {
+    $('#myModal_e').modal({
+        show: true
+    });
+  });
+  $('#myModal_e').on('shown.bs.modal', function () {
+    $("#txtname").focus();
+  });
+  $('#myModal_e').modal({
+    show: false
+  });
+
+  // update button k
+  $( "#k" ).click(function() {
+    $('#myModal_k').modal({
+        show: true
+    });
+  });
+  $('#myModal_k').on('shown.bs.modal', function () {
+    $("#txtname").focus();
+  });
+  $('#myModal_k').modal({
+    show: false
+  });
+
+}, 1000);
+</script>
+
+<!-- Modal_d -->
+<div id="myModal_d" class="modal fade" role="dialog">
+  <div class="modal-dialog">    
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Driver's Name : Amy</h4>
+      </div>
+      <div class="modal-body">
+	<div style="width:50%;float:left;">
+	  <center>
+	    <img src="fig/Amy.jpg" width="80" height="80" border="5" class="sample">
+	    &nbsp;&nbsp;&nbsp;&nbsp;
+	    <img src="fig/pic-van04.jpeg" width="80" height="80" class="trim-image-to-circle" border="5" class="sample">
+	  </center>
+	</div>
+	<div style="width:50%;float:right;">
+	  <div style="width:35%;float:left;">
+	    <center>
+	      <img src="fig/thumb_up.png" width="80" height="80">
+	    </center>
+	  </div>
+	  <div style="width:60%;float:right;">
+	    Efficient 4.8 /5.0 <br>
+	    Reliability 4.8 /5.0  <br>
+	    Safe Driver 4.8 /5.0
+	  </div>
+	</div>
+	<br>
+	<br>
+	<iframe src="http://localhost:3000/dashboard-solo/db/batteryprediction?from=1478451000000&to=1478481000000orTab=General&panelId=1&theme=light"
+		style="width:100%;"
+		height="500"
+		frameborder="0">	  
+	</iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
-  </body>
+</div>
+
+<!-- Modal_a -->
+<div id="myModal_a" class="modal fade" role="dialog">
+  <div class="modal-dialog">    
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Driver's Name : Yasu</h4>
+      </div>
+      <div class="modal-body">
+	<div style="width:50%;float:left;">
+	  <center>
+	    <img src="fig/Yasu.jpg" width="80" height="80" border="5" class="sample">
+	    &nbsp;&nbsp;&nbsp;&nbsp;
+	    <img src="fig/pic-van02.png" width="80" height="80" class="trim-image-to-circle" border="5" class="sample">
+	  </center>
+	</div>
+	<div style="width:50%;float:right;">
+	  <div style="width:35%;float:left;">
+	    <center>
+	      <img src="fig/Caution.png" width="80" height="80">
+	    </center>
+	  </div>
+	  <div style="width:60%;float:right;">
+	    Efficient 2.7 /5.0 <br>
+	    Reliability 3.5 /5.0  <br>
+	    Safe Driver 4.0 /5.0
+	  </div>
+	</div>
+	<br>
+	<br>
+	<iframe src="http://localhost:3000/dashboard-solo/db/batteryprediction?editorTab=General&panelId=2&from=1478451000000&to=1478481000000&theme=light"
+		style="width:100%;"
+		height="500"
+		frameborder="0"></iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal_e -->
+<div id="myModal_e" class="modal fade" role="dialog">
+  <div class="modal-dialog">    
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Modal Header</h4>
+      </div>
+      <div class="modal-body">
+        <p>Some text in the modal.</p>
+	<iframe src="http://localhost:3000/dashboard-solo/db/remaining-battery?editorTab=Axes&panelId=3&from=now-5m&to=now&theme=light"
+		style="width:100%;"
+		height="300"
+		frameborder="0">
+	</iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal_k -->
+<div id="myModal_k" class="modal fade" role="dialog">
+  <div class="modal-dialog">    
+    <!-- Modal content-->
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+        <h4 class="modal-title">Modal Header</h4>
+      </div>
+      <div class="modal-body">
+        <p>Some text in the modal.</p>
+	<iframe src="http://localhost:3000/dashboard-solo/db/remaining-battery?editorTab=Axes&panelId=4&from=now-5m&to=now&theme=light"
+		style="width:100%;"
+		height="300"
+		frameborder="0">
+	</iframe>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+
 </html>

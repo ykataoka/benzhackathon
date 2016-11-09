@@ -7,16 +7,11 @@ import pandas as pd
 from datetime import datetime , timedelta
 import random
 
-def battery_dummy_generator(battery_val):
-    if battery_val < 0.0:
-        return 100.0
-    return battery_val - 0.2 * random.random()
-
 def battery_init_pred_gen(i):
     x1,y1 = 0,100
-    x2,y2 = 972,-170
-    x3,y3 = 2268,52
-    x4,y4 = 2880,5
+    x2,y2 = 972,-20
+    x3,y3 = 1800,20
+    x4,y4 = 2880,15
     X,Y = [], []
     t = i / 2880.
     x = (1-t*t*t)*x1 + 3*(1-t)*(1-t)*t*x2 + 3*(1-t)*t*t*x3 + t*t*t*x4
@@ -25,9 +20,9 @@ def battery_init_pred_gen(i):
 
 def battery_cur_gen(i):
     x1,y1 = 0,100
-    x2,y2 = 972,-150
-    x3,y3 = 2268,52
-    x4,y4 = 2880,15
+    x2,y2 = 972,-30
+    x3,y3 = 1400,10
+    x4,y4 = 2880,-15
     X2,Y2 = [], []
     t = i / 2880.
     x = (1-t*t*t)*x1 + 3*(1-t)*(1-t)*t*x2 + 3*(1-t)*t*t*x3 + t*t*t*x4
@@ -36,9 +31,9 @@ def battery_cur_gen(i):
 
 def battery_after_pred_gen(i):
     x1,y1 = 0,100
-    x2,y2 = 972,-150
-    x3,y3 = 2268,52
-    x4,y4 = 2880,15
+    x2,y2 = 972,-30
+    x3,y3 = 1400,10
+    x4,y4 = 2880,-15
     X2,Y2 = [], []
     t = i / 2880.
     x = (1-t*t*t)*x1 + 3*(1-t)*(1-t)*t*x2 + 3*(1-t)*t*t*x3 + t*t*t*x4
@@ -53,20 +48,18 @@ def main(host='localhost', port=8086):
     dbname = 'benz_simulation'
     dbuser = 'yasu'
     dbuser_password = 'my_secret_password'
-    #query = 'select value from cpu_load_short;'
     client = InfluxDBClient(host, port, user, password, dbname)
     print("Drop database: " + dbname)
     client.drop_database(dbname)
     print("Create database: " + dbname)
     client.create_database(dbname)
     print host, port, user, password, dbname
-    
-    #print host, port, user, password, dbname
+
     time_now = datetime(2016, 11, 6, 9, 0, 0)
     time_now = time_now + timedelta(hours=8)    
     for i in range(2880):
         
-        # demian(Amy)
+        # Yasu
         time_now = time_now + timedelta(seconds=10)
         battery_init_pred = battery_init_pred_gen(i) #i[s] from 8:00am
 
@@ -85,7 +78,7 @@ def main(host='localhost', port=8086):
         }
         json_body = [
             {
-                "measurement": "battery_data_d",
+                "measurement": "battery_data_a",
                 "tags": {
                     "host": "server01",
                     "region": "us-west"
@@ -94,35 +87,7 @@ def main(host='localhost', port=8086):
                 "fields": temp
             }
         ]
-        print temp
         client.write_points(json_body)
-        
-#        # angela(Yasu)
-#        current_time = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-#        longitude    = location_a.iloc[i,:]['longitude']
-#        latitude     = location_a.iloc[i,:]['latitude']
-#        battery_val  = battery_dummy_generator(battery_val)
-#        temp = {"longitude" : longitude,
-#                "latitude" : latitude,
-#                "battery" : battery_val}
-#        json_body = [
-#            {
-#                "measurement": "battery_data_a",
-#                "tags": {
-#                    "host": "server01",
-#                    "region": "us-west"
-#                },
-#                "time": current_time,
-#                "fields": temp
-#            }
-#        ]
-#        print temp
-#        client.write_points(json_body)
-#
-#        print "sleep!"
-#        time.sleep(1)
-    
-    # GPS data
     
     
 def parse_args():
@@ -140,4 +105,5 @@ if __name__ == '__main__':
     print args.host
     print args.port
     main(host=args.host, port=args.port)
+    print "Done, insert_battery_Yasu.py"
     

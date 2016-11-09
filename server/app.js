@@ -1,7 +1,3 @@
-// Access the URL by http://[YourIPAddress]:8880/node_modules/gentelella/production/index.html
-var PythonShell = require('python-shell');
-//var influx = require('influx');
-
 // Libraries
 var http = require("http"),
     url = require("url"),
@@ -11,10 +7,7 @@ port = process.argv[2] || 8880;
 var moment = require("moment");
 var GeoJSON = require('geojson');
 
-//
 // INFLUX DB
-//
-// changed the way to use...
 const Influx = require('influx');
 const influx = new Influx.InfluxDB({
   host: 'localhost',
@@ -29,25 +22,23 @@ const influx = new Influx.InfluxDB({
       tags: [
         'host'
       ]
-    }
-  ]
-})
+    }]
+});
 
-// Sample of query
-var query = "select * from car_data limit 2"
+// Test for influxDB
+var query = "select * from car_data_a limit 2"
 influx.query(query).then(
     result => {
 	var out = GeoJSON.parse(result[0], {Point: ['latitude', 'longitude']});
+	console.log("Success in test for influxDB!");
 	console.log(out);
     }).catch(err => {
-	console.log('error');
+	console.log('Error in test for influxDB!');
 	res.status(500).send(err.stack)
     });
 
 
-//
 // Set up Web Server
-//
 var app = http.createServer(function(request, response) {
     var uri = url.parse(request.url).pathname
     , filename = path.join(process.cwd(), uri);
@@ -60,7 +51,7 @@ var app = http.createServer(function(request, response) {
 	    return;
 	}
 	
-	//    if (fs.statSync(filename).isDirectory()) filename += 'index.html';
+	if (fs.statSync(filename).isDirectory()) filename += 'index.html'; // redirect to index.html
 	fs.readFile(filename, "binary", function(err, file) {
 	    if(err) {        
 		response.writeHead(500, {"Content-Type": "text/plain"});
@@ -76,9 +67,7 @@ var app = http.createServer(function(request, response) {
 }).listen(parseInt(port, 10));
 console.log("Static file server running at\n  => http://localhost:" + port + "/\nCTRL + C to shutdown");
 
-//
 // Web Socket
-//
 var io  = require('socket.io')(app);
 var fs  = require('fs');
 io.on('connection', function (socket) {
@@ -86,13 +75,12 @@ io.on('connection', function (socket) {
     var out_a = ''
     var out_e = ''
     var out_k = ''
+
     // send gps every 1000ms from influxDB
     setInterval(function (){
-
-	// demian
+	// demian (Amy)
 	var query = "select * from car_data_d " + 
 	    "where time < now()-2s order by desc limit 2"
-	console.log(query);
 	influx.query(query).then(
 	    result => {
 		out_d = GeoJSON.parse(result[0],
@@ -102,12 +90,10 @@ io.on('connection', function (socket) {
 		res.status(500).send(err.stack)
 	    });
 	socket.emit('geo_data_d', out_d);
-	console.log("emit_d > ", out_d);
 
-	// angela
+	// angela (Yasu)
 	var query = "select * from car_data_a " + 
 	    "where time < now()-2s order by desc limit 2"
-	console.log(query);
 	influx.query(query).then(
 	    result => {
 		out_a = GeoJSON.parse(result[0],
@@ -117,12 +103,10 @@ io.on('connection', function (socket) {
 		res.status(500).send(err.stack)
 	    });
 	socket.emit('geo_data_a', out_a);
-	console.log("emit_a > ", out_a);
 	
-	// einsteinfiles
+	// einsteinfiles (David)
 	var query = "select * from car_data_e " + 
 	    "where time < now()-2s order by desc limit 2"
-	console.log(query);
 	influx.query(query).then(
 	    result => {
 		out_e = GeoJSON.parse(result[0],
@@ -132,12 +116,10 @@ io.on('connection', function (socket) {
 		res.status(500).send(err.stack)
 	    });
 	socket.emit('geo_data_e', out_e);
-	console.log("emit_e > ", out_e);
 	
-	// karl
+	// karl (Sam)
 	var query = "select * from car_data_k " + 
 	    "where time < now()-2s order by desc limit 2"
-	console.log(query);
 	influx.query(query).then(
 	    result => {
 		out_k = GeoJSON.parse(result[0],
@@ -147,8 +129,6 @@ io.on('connection', function (socket) {
 		res.status(500).send(err.stack)
 	    });
 	socket.emit('geo_data_k', out_k);
-	console.log("emit_k > ", out_k);
-	
     }, 1000);    
 });
 

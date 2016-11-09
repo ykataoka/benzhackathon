@@ -48,10 +48,7 @@ def main(host='localhost', port=8086):
     dbname = 'benz_simulation'
     dbuser = 'yasu'
     dbuser_password = 'my_secret_password'
-    #query = 'select value from cpu_load_short;'
     client = InfluxDBClient(host, port, user, password, dbname)
-#    print("Drop database: " + dbname)
-#    client.drop_database(dbname)
     print("Create database: " + dbname)
     client.create_database(dbname)
     print host, port, user, password, dbname
@@ -61,7 +58,7 @@ def main(host='localhost', port=8086):
     time_now = time_now + timedelta(hours=8)    
     for i in range(2880):
         
-        # demian(Amy)
+        # Amy
         time_now = time_now + timedelta(seconds=10)
         battery_init_pred = battery_init_pred_gen(i) #i[s] from 8:00am
 
@@ -89,8 +86,8 @@ def main(host='localhost', port=8086):
                 "fields": temp
             }
         ]
-        print temp
         client.write_points(json_body)
+
     
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -107,4 +104,4 @@ if __name__ == '__main__':
     print args.host
     print args.port
     main(host=args.host, port=args.port)
-    
+    print "Done, insert_battery_Amy.py"
